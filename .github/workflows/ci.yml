@@ -44,7 +44,7 @@ jobs:
       - name: Archive Backend Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: backend-${{ matrix.environment }}
+          name: backend-${{ matrix.environment }}-node${{ matrix.node-version }}
           path: backend
 
   frontend:
@@ -84,7 +84,7 @@ jobs:
       - name: Archive Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-${{ matrix.environment }}
+          name: frontend-${{ matrix.environment }}-node${{ matrix.node-version }}
           path: frontend/dist
 
   summary:
