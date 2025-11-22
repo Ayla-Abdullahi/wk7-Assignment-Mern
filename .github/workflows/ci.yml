@@ -22,6 +22,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Debug workspace (backend)
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -1
+          echo "Backend tree (top level):"; ls -1 backend | head -n 50 || true
+          test -f backend/package.json && echo "backend/package.json present" || echo "MISSING backend/package.json"
+          test -f backend/package-lock.json && echo "backend/package-lock.json present" || echo "MISSING backend/package-lock.json"
       - name: Show versions
         run: |
           node -v
@@ -63,6 +70,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Debug workspace (frontend)
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -1
+          echo "Frontend tree (top level):"; ls -1 frontend | head -n 50 || true
+          test -f frontend/package.json && echo "frontend/package.json present" || echo "MISSING frontend/package.json"
+          test -f frontend/package-lock.json && echo "frontend/package-lock.json present" || echo "MISSING frontend/package-lock.json"
+          echo "Node config files:"; ls -1 frontend | grep -E 'vite|vitest|eslint' || true
       - name: Show versions
         run: |
           node -v
