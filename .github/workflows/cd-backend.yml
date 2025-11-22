@@ -19,6 +19,15 @@ jobs:
       BACKEND_URL: ${{ secrets.BACKEND_URL }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate required secrets (production)
+        run: |
+          missing=()
+          [ -z "$RENDER_SERVICE_ID" ] && [ -z "$RAILWAY_TOKEN" ] && missing+=("RENDER_SERVICE_ID or RAILWAY_TOKEN")
+          [ -z "$BACKEND_URL" ] && missing+=("BACKEND_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing required secrets: ${missing[*]}" >&2
+            exit 1
+          fi
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -39,6 +48,11 @@ jobs:
           railway up --service backend
       - name: Health Check
         run: |
+          if [ -z "$BACKEND_URL" ]; then
+            echo "BACKEND_URL not set; skipping health check and marking deploy as failed config" >&2
+            exit 1
+          fi
+          echo "Checking $BACKEND_URL/api/health ..."
           STATUS=$(curl -fsS "$BACKEND_URL/api/health" | jq -r .status || echo 'fail')
           echo "Status: $STATUS"
           if [ "$STATUS" != "ok" ]; then
@@ -55,6 +69,15 @@ jobs:
       BACKEND_URL: ${{ secrets.BACKEND_URL_STAGING }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate required secrets (staging)
+        run: |
+          missing=()
+          [ -z "$RAILWAY_TOKEN" ] && missing+=("RAILWAY_TOKEN_STAGING")
+          [ -z "$BACKEND_URL" ] && missing+=("BACKEND_URL_STAGING")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing required staging secrets: ${missing[*]}" >&2
+            exit 1
+          fi
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -69,6 +92,11 @@ jobs:
           railway up --service backend --environment staging
       - name: Staging Health Check
         run: |
+          if [ -z "$BACKEND_URL" ]; then
+            echo "BACKEND_URL_STAGING not set; failing early." >&2
+            exit 1
+          fi
+          echo "Checking staging $BACKEND_URL/api/health ..."
           STATUS=$(curl -fsS "$BACKEND_URL/api/health" | jq -r .status || echo 'fail')
           echo "Staging Status: $STATUS"
           if [ "$STATUS" != "ok" ]; then
