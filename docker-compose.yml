@@ -1,0 +1,33 @@
+version: '3.9'
+services:
+  backend:
+    build: ./backend
+    env_file: ./backend/.env.example
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      ENABLE_METRICS: "true"
+      # Use local Mongo service in compose
+      MONGO_URI: mongodb://mongo:27017/week7
+    ports:
+      - "4001:4000"  # Host port changed to avoid conflict
+    depends_on:
+      - mongo
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+  mongo:
+    image: mongo:7
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: week7
+    # Host port 27017 already in use; expose on 27018 instead or keep internal only.
+    ports:
+      - "27018:27017"
+
+networks:
+  default:
+    name: week7-net

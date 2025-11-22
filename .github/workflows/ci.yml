@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    name: Backend Lint & Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        environment: [staging, production]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Install deps (backend)
+        working-directory: backend
+        run: npm ci
+      - name: Audit (backend)
+        working-directory: backend
+        run: npm audit --production || echo 'Audit issues (non-blocking)'
+      - name: Lint (backend)
+        working-directory: backend
+        run: npm run lint || echo 'Lint warnings'
+      - name: Test (backend)
+        working-directory: backend
+        run: npm test
+      - name: Build (backend)
+        working-directory: backend
+        run: npm run build
+      - name: Archive Backend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.environment }}
+          path: backend
+
+  frontend:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        environment: [staging, production]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Install deps (frontend)
+        working-directory: frontend
+        run: npm ci
+      - name: Audit (frontend)
+        working-directory: frontend
+        run: npm audit --production || echo 'Audit issues (non-blocking)'
+      - name: Lint (frontend)
+        working-directory: frontend
+        run: npm run lint || echo 'Lint warnings'
+      - name: Test (frontend)
+        working-directory: frontend
+        run: npm test
+      - name: Build (frontend)
+        working-directory: frontend
+        run: npm run build
+      - name: Archive Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ matrix.environment }}
+          path: frontend/dist
+
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - run: echo "CI pipeline complete."

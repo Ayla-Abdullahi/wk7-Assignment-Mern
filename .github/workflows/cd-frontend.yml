@@ -1,0 +1,72 @@
+name: CD Frontend
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Install deps
+        working-directory: frontend
+        run: npm ci
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+      - name: Vercel Deploy
+        run: |
+          vercel deploy --prebuilt --yes --token $VERCEL_TOKEN --scope $VERCEL_ORG_ID --env VITE_API_BASE_URL=${{ secrets.BACKEND_URL }}
+          vercel alias --token $VERCEL_TOKEN
+      - name: Post-deploy check
+        run: |
+          curl -fsS "$FRONTEND_URL" | head -n 20 || exit 1
+      - name: Rollback (Manual Trigger Placeholder)
+        if: ${{ failure() }}
+        run: echo 'Use `vercel rollback` with previous deployment ID'
+  deploy-frontend-staging:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/staging' }}
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_STAGING }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID_STAGING }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_STAGING }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL_STAGING }}
+      BACKEND_URL_STAGING: ${{ secrets.BACKEND_URL_STAGING }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Install deps (staging)
+        working-directory: frontend
+        run: npm ci
+      - name: Build (staging)
+        working-directory: frontend
+        run: npm run build
+      - name: Vercel Deploy Staging
+        run: |
+          npm i -g vercel@latest
+          vercel deploy --prebuilt --yes --token $VERCEL_TOKEN --scope $VERCEL_ORG_ID --env VITE_API_BASE_URL=$BACKEND_URL_STAGING --prod false
+      - name: Staging Availability Check
+        run: |
+          curl -fsS "$FRONTEND_URL" | head -n 10 || exit 1
