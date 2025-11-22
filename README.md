@@ -267,6 +267,16 @@ Update after first successful production deploy:
 
 Place image files in `docs/screenshots/` and commit.
 
+### Finding Your Deployed URLs
+After CI completes, the CD workflows publish URLs in two places:
+- GitHub Actions run summary: look for "Backend Deployment URL" and "Frontend Deployment URL" sections in the respective CD runs.
+- Artifacts: download `backend-deployment-url` and `frontend-deployment-url` artifacts; each contains a single line with the URL.
+
+You can also copy them from hosting dashboards:
+- Render (backend): Service → Domains/Service URL
+- Railway (if used): Service → Public URL
+- Vercel (frontend): Project → Deployments (deployment URL) or Project → Domains (canonical URL)
+
 ### Screenshot Capture Commands (Examples)
 ```
 # Using Chrome headless (if needed locally)

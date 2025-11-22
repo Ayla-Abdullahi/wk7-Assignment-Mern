@@ -9,6 +9,8 @@ on:
 
 jobs:
   deploy-backend:
+    outputs:
+      backend_url: ${{ steps.publish.outputs.backend_url }}
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     environment: production
@@ -61,6 +63,29 @@ jobs:
           if [ -z "$URL" ]; then
             echo "Could not auto-detect Render URL after retries; consider setting BACKEND_URL secret." >&2
           fi
+      - name: Publish Backend URL
+        id: publish
+        run: |
+          mkdir -p deployment-urls
+          if [ -z "$BACKEND_URL" ]; then
+            echo "No BACKEND_URL available to publish." | tee deployment-urls/backend.txt
+          else
+            echo "$BACKEND_URL" | tee deployment-urls/backend.txt
+            echo "backend_url=$BACKEND_URL" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo "## Backend Deployment URL";
+            if [ -z "$BACKEND_URL" ]; then
+              echo "No backend URL detected or provided.";
+            else
+              echo "$BACKEND_URL";
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload Backend URL Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-deployment-url
+          path: deployment-urls/backend.txt
       - name: Railway Deploy (fallback example)
         if: ${{ env.RENDER_SERVICE_ID == '' && env.RAILWAY_TOKEN != '' }}
         run: |
