@@ -225,6 +225,9 @@ Store evidence under `docs/screenshots/`:
 | metrics.png | Snippet from `/api/metrics` or dashboard |
 | ci-run.png | Successful CI workflow summary |
 | sentry.png | Sentry event list or trace |
+| local-app.png | Local frontend via compose (captured manually) |
+| local-health.png | Local health endpoint response |
+| local-metrics.png | Local metrics endpoint sample |
 
 ### Security Audit Guidance
 Run: `npm audit` in both `backend` and `frontend`. Address high/critical immediately. For moderate dev-only issues document justification if not patched. Avoid `npm audit fix --force` unless change is reviewed. Add an audit step / filter to CI as enhancement.
