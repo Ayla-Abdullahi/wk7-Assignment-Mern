@@ -22,8 +22,12 @@ jobs:
       - name: Validate required secrets (production)
         run: |
           missing=()
+          # Need at least one deploy mechanism
           [ -z "$RENDER_SERVICE_ID" ] && [ -z "$RAILWAY_TOKEN" ] && missing+=("RENDER_SERVICE_ID or RAILWAY_TOKEN")
-          [ -z "$BACKEND_URL" ] && missing+=("BACKEND_URL")
+          # BACKEND_URL may be absent if we will auto-detect from Render; only require if neither Render nor Railway domain known.
+          if [ -n "$RAILWAY_TOKEN" ] && [ -z "$BACKEND_URL" ]; then
+            missing+=("BACKEND_URL (required for Railway health check)")
+          fi
           if [ ${#missing[@]} -gt 0 ]; then
             echo "Missing required secrets: ${missing[*]}" >&2
             exit 1
@@ -40,6 +44,23 @@ jobs:
         run: |
           curl -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
             -H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json"
+      - name: Auto-detect Render URL
+        if: ${{ env.RENDER_SERVICE_ID != '' && env.BACKEND_URL == '' }}
+        run: |
+          echo "Attempting to auto-detect Render service URL..."
+          for i in {1..15}; do
+            DATA=$(curl -fsS -H "Authorization: Bearer $RENDER_API_KEY" "https://api.render.com/v1/services/$RENDER_SERVICE_ID" || echo '{}')
+            URL=$(echo "$DATA" | jq -r '(.service.domain.name // .service.domain // .service.url // .domain // .url // empty)')
+            if [ -n "$URL" ] && [[ "$URL" =~ ^https?:// ]]; then
+              echo "Detected URL: $URL"
+              echo "BACKEND_URL=$URL" >> $GITHUB_ENV
+              break
+            fi
+            echo "Retry $i..."; sleep 10
+          done
+          if [ -z "$URL" ]; then
+            echo "Could not auto-detect Render URL after retries; consider setting BACKEND_URL secret." >&2
+          fi
       - name: Railway Deploy (fallback example)
         if: ${{ env.RENDER_SERVICE_ID == '' && env.RAILWAY_TOKEN != '' }}
         run: |
@@ -49,7 +70,7 @@ jobs:
       - name: Health Check
         run: |
           if [ -z "$BACKEND_URL" ]; then
-            echo "BACKEND_URL not set; skipping health check and marking deploy as failed config" >&2
+            echo "BACKEND_URL still not set; failing deploy before health check." >&2
             exit 1
           fi
           echo "Checking $BACKEND_URL/api/health ..."
