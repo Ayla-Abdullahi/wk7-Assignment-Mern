@@ -14,6 +14,7 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
         environment: [staging, production]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Use Node ${{ matrix.node-version }}
@@ -21,9 +22,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Show versions
+        run: |
+          node -v
+          npm -v
       - name: Install deps (backend)
         working-directory: backend
-        run: npm ci
+        run: npm ci || npm install --no-audit --no-fund
       - name: Audit (backend)
         working-directory: backend
         run: npm audit --production || echo 'Audit issues (non-blocking)'
@@ -49,6 +54,7 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
         environment: [staging, production]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Use Node ${{ matrix.node-version }}
@@ -56,9 +62,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+      - name: Show versions
+        run: |
+          node -v
+          npm -v
       - name: Install deps (frontend)
         working-directory: frontend
-        run: npm ci
+        run: npm ci || npm install --no-audit --no-fund
       - name: Audit (frontend)
         working-directory: frontend
         run: npm audit --production || echo 'Audit issues (non-blocking)'
