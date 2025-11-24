@@ -8,6 +8,7 @@
     "start": "node server.js",
     "lint": "eslint .",
     "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest",
+    "smoke": "node scripts/crudSmoke.js",
     "build": "echo 'Node backend does not need build step'"
   },
   "dependencies": {
